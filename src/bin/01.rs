@@ -111,14 +111,7 @@ mod tests {
     fn test_parse_part_two() {
         let example = "two1nine\neightwothree\nabcone2threexyz\nxtwone3four\n4nineeightseven2\nzoneight234\n7pqrstsixteen";
         let result = parse_part_two(example);
-        let mut correct_result = Vec::new();
-        correct_result.push("29");
-        correct_result.push("83");
-        correct_result.push("13");
-        correct_result.push("24");
-        correct_result.push("42");
-        correct_result.push("14");
-        correct_result.push("76");
+        let correct_result: Vec<&str> = Vec::from(["29", "83", "13", "24", "42", "14", "76"]);
         assert_eq!(result, correct_result);
     }
 
