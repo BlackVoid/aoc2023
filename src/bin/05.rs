@@ -62,7 +62,10 @@ impl SoilMap {
                 Ordering::Equal
             }
         }) {
-            Ok(i) => self.ranges[i].map(src),
+            Ok(i) => {
+                let map = &self.ranges[i];
+                (src-map.from_range.start)+map.destination_start
+            },
             Err(_) => src
         }
     }
@@ -119,16 +122,17 @@ pub fn part_two(_input: &str) -> Option<u64> {
     let (_seeds, maps) = parse_input(_input);
 
     println!("Chunking");
-    let chunks: Vec<Range<u64>> = _seeds
+    let chunks: Vec<u64> = _seeds
         .chunks(2)
-        .map(|chunk| chunk[0]..(chunk[0]+chunk[1]))
+        .flat_map(|chunk| chunk[0]..(chunk[0]+chunk[1]))
         .collect();
+
+    println!("Items {}", chunks.len());
 
     println!("Solving");
 
-    Some(chunks.into_par_iter().map(|seeds| {
-        println!("New range {:?}", seeds);
-        seeds.into_iter().map(|s| solve(s, &maps)).min().unwrap()
+    Some(chunks.into_par_iter().map(|s| {
+        solve(s, &maps)
     }).min().unwrap())
 }
 
