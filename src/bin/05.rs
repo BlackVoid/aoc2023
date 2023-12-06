@@ -1,22 +1,6 @@
 use std::ops::Range;
 use rayon::prelude::*;
 
-struct MapRange {
-    from_range: Range<u64>,
-    destination_start: u64
-}
-
-impl MapRange {
-    pub fn from_str(data: &str) -> (u64, u64, u64) {
-        let items: Vec<u64> = data.split(" ").map(|x| x.parse::<u64>().unwrap()).collect();
-        (items[1], items[1]+items[2], items[0])
-    }
-
-    pub fn map(&self, src: u64) -> u64 {
-        (src-self.from_range.start)+self.destination_start
-    }
-}
-
 struct SoilMap {
     from: String,
     to: String,
@@ -35,7 +19,10 @@ impl SoilMap {
             .expect("Should find two parts");
 
         let mut ranges = lines[1..].into_iter()
-            .map(|&x| MapRange::from_str(x))
+            .map(|&range| {
+                let items: Vec<u64> = range.split(" ").map(|x| x.parse::<u64>().unwrap()).collect();
+                (items[1], items[1]+items[2], items[0])
+            })
             .collect::<Vec<(u64, u64, u64)>>();
 
         ranges.sort_by(|(sa, _, _), (sb, _, _)| sa.cmp(sb));
