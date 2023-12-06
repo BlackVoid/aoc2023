@@ -83,9 +83,9 @@ pub fn part_one(_input: &str) -> Option<u64> {
 }
 
 pub fn part_two(_input: &str) -> Option<u64> {
-    let (_seeds, maps) = parse_input(_input);
+    let (seeds, maps) = parse_input(_input);
 
-    let chunks = _seeds
+    let result = seeds
         .par_chunks(2)
         .into_par_iter()
         .flat_map(|chunk| chunk[0]..(chunk[0]+chunk[1]))
@@ -94,7 +94,7 @@ pub fn part_two(_input: &str) -> Option<u64> {
         })
         .min().unwrap();
 
-    Some(chunks)
+    Some(result)
 }
 
 advent_of_code::main!(5);
