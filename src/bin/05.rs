@@ -85,14 +85,16 @@ pub fn part_one(_input: &str) -> Option<u64> {
 pub fn part_two(_input: &str) -> Option<u64> {
     let (_seeds, maps) = parse_input(_input);
 
-    let chunks: Vec<u64> = _seeds
-        .chunks(2)
+    let chunks = _seeds
+        .par_chunks(2)
+        .into_par_iter()
         .flat_map(|chunk| chunk[0]..(chunk[0]+chunk[1]))
-        .collect();
+        .map(|c| {
+            solve(c, &maps)
+        })
+        .min().unwrap();
 
-    Some(chunks.par_iter().map(|s| {
-        solve(*s, &maps)
-    }).min().unwrap())
+    Some(chunks)
 }
 
 advent_of_code::main!(5);
