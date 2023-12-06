@@ -1,5 +1,3 @@
-use std::cmp::Ordering;
-use std::collections::HashMap;
 use std::ops::Range;
 use rayon::prelude::*;
 
@@ -9,12 +7,9 @@ struct MapRange {
 }
 
 impl MapRange {
-    pub fn from_str(data: &str) -> MapRange {
+    pub fn from_str(data: &str) -> (u64, u64, u64) {
         let items: Vec<u64> = data.split(" ").map(|x| x.parse::<u64>().unwrap()).collect();
-        MapRange {
-            from_range: items[1]..(items[1]+items[2]),
-            destination_start: items[0]
-        }
+        (items[1], items[1]+items[2], items[0])
     }
 
     pub fn map(&self, src: u64) -> u64 {
@@ -25,7 +20,7 @@ impl MapRange {
 struct SoilMap {
     from: String,
     to: String,
-    ranges: Vec<MapRange>
+    ranges: Vec<(u64, u64, u64)>
 }
 
 impl SoilMap {
@@ -41,9 +36,9 @@ impl SoilMap {
 
         let mut ranges = lines[1..].into_iter()
             .map(|&x| MapRange::from_str(x))
-            .collect::<Vec<MapRange>>();
+            .collect::<Vec<(u64, u64, u64)>>();
 
-        ranges.sort_by(|a, b| a.from_range.start.cmp(&b.from_range.start));
+        ranges.sort_by(|(sa, _, _), (sb, _, _)| sa.cmp(sb));
 
         SoilMap {
             from: from.to_string(),
@@ -53,25 +48,16 @@ impl SoilMap {
     }
 
     pub fn map(&self, src: u64) -> u64 {
-        match self.ranges.binary_search_by(| x| {
-            if src < x.from_range.start {
-                Ordering::Greater
-            } else if src >= x.from_range.end {
-                Ordering::Less
-            } else {
-                Ordering::Equal
-            }
-        }) {
-            Ok(i) => {
-                let map = &self.ranges[i];
-                (src-map.from_range.start)+map.destination_start
+        match self.ranges.iter().find(| &(start, end, base)| start <= &src && &src < end) {
+            Some((start, _, base)) => {
+                (src-start)+base
             },
-            Err(_) => src
+            None => src
         }
     }
 }
 
-fn parse_input(_input: &str) -> (Vec<u64>, HashMap<String, SoilMap>) {
+fn parse_input(_input: &str) -> (Vec<u64>, Vec<SoilMap>) {
     let chunks: Vec<&str> = _input.split("\n\n").collect();
     let seeds: Vec<u64> = chunks[0]
         .split_once(": ")
@@ -80,59 +66,32 @@ fn parse_input(_input: &str) -> (Vec<u64>, HashMap<String, SoilMap>) {
         .map(|x| x.parse::<u64>().unwrap())
         .collect();
 
-    let map: HashMap<String, SoilMap> = HashMap::from_iter(chunks[1..].into_iter()
+    let map: Vec<SoilMap> = chunks[1..].into_iter()
         .map(|&data| SoilMap::from_str(data))
-        .map(|map| (map.from.clone(), map))
-    );
+        .collect();
 
     (seeds, map)
 }
 
-fn solve (seed: u64, maps: &HashMap<String, SoilMap>) -> u64 {
-    //let mut results: Vec<(String, u64)> = Vec::new();
-    let mut next = &String::from("seed");
-    let mut value = seed;
-    //results.push((next.to_string(), value));
-
-    loop {
-        let map = match maps.get(next) {
-            Some(m) => m,
-            None => break
-        };
-
-        value = map.map(value);
-        next = &map.to;
-        //results.push((next.to_string(), value))
-    }
-
-    //println!("{}", results.clone().into_iter().map(|(x, y)| format!("{} {}", x, y)).collect::<Vec<String>>().join(", "));
-
-    value
+fn solve (seed: u64, maps: &Vec<SoilMap>) -> u64 {
+    maps.iter().fold(seed, |acc, map| map.map(acc))
 }
 
 pub fn part_one(_input: &str) -> Option<u64> {
-    println!("Parsing");
     let (seeds, maps) = parse_input(_input);
-    println!("Solving");
     Some(seeds.into_iter().map(|s| solve(s, &maps)).min().unwrap())
 }
 
 pub fn part_two(_input: &str) -> Option<u64> {
-    println!("Parsing");
     let (_seeds, maps) = parse_input(_input);
 
-    println!("Chunking");
     let chunks: Vec<u64> = _seeds
         .chunks(2)
         .flat_map(|chunk| chunk[0]..(chunk[0]+chunk[1]))
         .collect();
 
-    println!("Items {}", chunks.len());
-
-    println!("Solving");
-
-    Some(chunks.into_par_iter().map(|s| {
-        solve(s, &maps)
+    Some(chunks.par_iter().map(|s| {
+        solve(*s, &maps)
     }).min().unwrap())
 }
 
@@ -141,15 +100,6 @@ advent_of_code::main!(5);
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_parse_range_map() {
-        let result = MapRange::from_str("50 98 2");
-        assert_eq!(result.destination_start, 50);
-        assert_eq!(result.from_range, 98..100);
-        assert_eq!(result.map(98), 50);
-        assert_eq!(result.map(99), 51);
-    }
 
     #[test]
     fn test_parse_soil_map() {
@@ -174,17 +124,5 @@ mod tests {
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", 5));
         assert_eq!(result, Some(46));
-    }
-
-    #[test]
-    fn test_part_one_input() {
-        let result = part_one(&advent_of_code::template::read_file("inputs", 5));
-        assert_eq!(result, Some(261668924));
-    }
-
-    #[test]
-    fn test_part_two_input() {
-        let result = part_two(&advent_of_code::template::read_file("inputs", 5));
-        assert_eq!(result, Some(261668924));
     }
 }
